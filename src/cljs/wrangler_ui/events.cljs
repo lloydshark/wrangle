@@ -1,0 +1,141 @@
+(ns wrangler-ui.events
+  (:require
+    [ajax.core :as ajax]
+    [re-frame.core :as re-frame]
+    [wrangler-ui.db :as db]
+    ))
+
+(re-frame/reg-event-db
+  ::initialize-db
+  (fn [_ _]
+    db/default-db))
+
+(re-frame/reg-event-fx
+  ::evaluate
+  (fn [{:keys [db]} _]                                      ;; the first param will be "world"
+    {:http-xhrio {:method          :post
+                  :body            (get-in db [:project :code])
+                  :uri             "http://localhost:8081/evaluate"
+                  :timeout         10000                    ;; optional see API docs
+                  :response-format (ajax/json-response-format {:keywords? true}) ;; IMPORTANT!: You must provide this.
+                  :on-success      [::evaluate-success]
+                  :on-failure      [::evaluate-failure]}}))
+
+(re-frame/reg-event-db
+  ::evaluate-success
+  (fn [db event]
+    (println "evaluate-success")
+    (println event)
+    (assoc-in db [:project :result] (-> event
+                                        (second)
+                                        (get :result)))))
+
+(re-frame/reg-event-db
+  ::evaluate-failure
+  (fn [db event]
+    (println "evaluate-failed")
+    (println event)
+    db))
+
+(re-frame/reg-event-db
+  ::edit-code
+  (fn [db [_ code]]
+    ;(println db)
+    (assoc-in db [:project :code] code)))
+
+(re-frame/reg-event-fx
+  ::load-projects
+  (fn [_ _]
+    {:http-xhrio {:method          :get
+                  :uri             "http://localhost:8081/projects"
+                  :timeout         10000                    ;; optional see API docs
+                  :response-format (ajax/transit-response-format {}) ;; IMPORTANT!: You must provide this.
+                  :on-success      [::projects-success]
+                  :on-failure      [::projects-failure]}}))
+
+(re-frame/reg-event-db
+  ::projects-success
+  (fn [db [_ projects]]
+    (println "projects success")
+    (assoc db :projects projects)))
+
+(re-frame/reg-event-db
+  ::projects-failure
+  (fn [db event]
+    (println "evaluate-failed")
+    (println event)
+    db))
+
+(re-frame/reg-event-fx
+  ::load-project
+  (fn [{:keys [db]} [_ project-id]]
+    {:db         (assoc db :screen :project-loading)
+     :http-xhrio {:method          :get
+                  :uri             (str "http://localhost:8081/projects/" project-id)
+                  :timeout         10000                    ;; optional see API docs
+                  :response-format (ajax/transit-response-format {}) ;; IMPORTANT!: You must provide this.
+                  :on-success      [::load-project-success]
+                  :on-failure      [::load-project-failure]}}))
+
+(re-frame/reg-event-db
+  ::load-project-success
+  (fn [db [_ project]]
+    (assoc db :screen :project
+              :project project)))
+
+(re-frame/reg-event-db
+  ::close-project
+  (fn [db _]
+    (-> db
+        (assoc :screen :home)
+        (dissoc :project))))
+
+(re-frame/reg-event-db
+  ::new-project
+  (fn [db _]
+    (-> db
+        (assoc :screen :project
+               :project {:name "New Thing"
+                         :code "(+ 1 2)"}))))
+
+(re-frame/reg-event-fx
+  ::save-project
+  (fn [{:keys [db]} _]
+    {:http-xhrio {:method          :post
+                  :params          (get-in db [:project])
+                  :uri             "http://localhost:8081/projects"
+                  :timeout         10000
+                  :format          (ajax/transit-request-format)
+                  :response-format (ajax/transit-response-format {})
+                  :on-success      [::save-project-success]
+                  :on-failure      [::save-project-failure]}}))
+
+(re-frame/reg-event-db
+  ::save-project-success
+  (fn [db [_ saved-project]]
+    (-> db
+        (assoc :project saved-project)
+        (assoc-in [:projects (:id saved-project)]
+                  (select-keys saved-project [:id :name])))))
+
+(re-frame/reg-event-db
+  ::save-project-failure
+  (fn [db event]
+    (println event)
+    db))
+
+(re-frame/reg-event-db
+  ::edit-name-start
+  (fn [db _]
+    (assoc db :edit-name? true)))
+
+(re-frame/reg-event-fx
+  ::edit-name-end
+  (fn [{:keys [db]} _]
+    {:db (dissoc db :edit-name?)
+     :fx [[:dispatch [::save-project]]]}))
+
+(re-frame/reg-event-db
+  ::edit-name
+  (fn [db [_ updated-name]]
+    (assoc-in db [:project :name] updated-name)))

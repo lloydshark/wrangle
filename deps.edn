@@ -1,0 +1,21 @@
+{:deps      {org.clojure/clojure {:mvn/version "1.10.3"}}
+
+ :paths     ["resources"]
+
+ :aliases   {:ui     {:extra-deps  {
+                                    org.clojure/clojurescript {:mvn/version "1.10.879"}
+                                    reagent/reagent         {:mvn/version "1.1.0"}
+                                    re-frame/re-frame       {:mvn/version "1.2.0"}}
+                      :extra-paths ["src/cljs"]}
+
+             :server {:extra-deps  {bidi/bidi               {:mvn/version "2.1.6"}
+                                    cheshire/cheshire       {:mvn/version "5.10.0"}
+                                    clj-http/clj-http       {:mvn/version "3.12.3"}
+                                    ring/ring-core          {:mvn/version "1.9.4"}
+                                    ring/ring-jetty-adapter {:mvn/version "1.9.4"}
+                                    ring-middleware-format/ring-middleware-format {:mvn/version "0.7.4"}
+                                    zprint/zprint           {:mvn/version "1.1.2"}}
+                      :extra-paths ["src/clj"]}}
+
+ :mvn/repos {"central" {:url "https://repo1.maven.org/maven2/"}
+             "clojars" {:url "https://repo.clojars.org/"}}}
