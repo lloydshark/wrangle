@@ -14,5 +14,8 @@
 # shadow-cljs cache, port files
 /.shadow-cljs/
 
-@ IntelliJ
+# IntelliJ
 /.idea
+
+# Clojure CLI
+.cpcache

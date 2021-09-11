@@ -57,6 +57,7 @@
 
 (defn main-panel []
   (let [screen       (re-frame/subscribe [::subs/screen])
+        project-id   (re-frame/subscribe [::subs/id])
         project-name (re-frame/subscribe [::subs/name])
         edit-name?   (re-frame/subscribe [::subs/edit-name?])]
     [:div {:class "flex flex-col h-full w-full p-4"}
@@ -78,12 +79,7 @@
        (when (= :project @screen)
          [:div {:class "space-x-2"}
           [:button {:class    "bg-red-700 hover:bg-red-500 text-white font-bold py-2 px-4 rounded"
-                    ;:on-click #(if (js/confirm "banana")
-                    ;              (println "Yes")
-                    ;              (println "No")
-                    ;             ;re-frame/dispatch [::events/delete-project]
-                    ;            )
-                    }
+                    :on-click #(re-frame/dispatch [::events/delete-project @project-id])}
            "Delete Project"]
           [:button {:class    "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                     :on-click #(re-frame/dispatch [::events/close-project])}

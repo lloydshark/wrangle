@@ -139,3 +139,43 @@
   ::edit-name
   (fn [db [_ updated-name]]
     (assoc-in db [:project :name] updated-name)))
+
+(re-frame/reg-event-fx
+  ::delete-project
+  (fn [_ [_ project-id]]
+    {:confirm {:message "Delete this Project?"
+               :event   [::delete-project-confirmed project-id]}}))
+
+(re-frame/reg-event-fx
+  ::delete-project-confirmed
+  (fn [{:keys [db]} [_ project-id]]
+    {:db         (-> db
+                     (assoc :screen :home)
+                     (dissoc :project)
+                     (update-in [:projects] dissoc project-id))
+     :http-xhrio {:method          :delete
+                  :uri             (str "http://localhost:8081/projects/" project-id)
+                  :timeout         10000
+                  :format          (ajax/json-request-format)
+                  :response-format (ajax/json-response-format {:keywords? true})
+                  :on-success      [::delete-project-success]
+                  :on-failure      [::delete-project-failure]}}))
+
+(re-frame/reg-event-fx
+  ::delete-project-success
+  (fn [_ _]
+    (println ::delete-project-success)
+    {}))
+
+(re-frame/reg-event-fx
+  ::delete-project-failure
+  (fn [_ _]
+    (println ::delete-project-failure)
+    {}))
+
+(re-frame/reg-fx
+  :confirm
+  (fn [{:keys [event message]}]
+    (when (js/confirm message)
+      (re-frame/dispatch event))))
+

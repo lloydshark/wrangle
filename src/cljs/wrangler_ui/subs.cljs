@@ -17,6 +17,10 @@
   (fn [db] (get-in db [:project :name])))
 
 (re-frame/reg-sub
+  ::id
+  (fn [db] (get-in db [:project :id])))
+
+(re-frame/reg-sub
   ::edit-name?
   (fn [db] (:edit-name? db)))
 

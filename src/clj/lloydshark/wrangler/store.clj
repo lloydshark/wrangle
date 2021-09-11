@@ -93,9 +93,32 @@
     (save-wrangle-data project-id {:code (:code project)})
     (fetch-project project-id)))
 
+(defn delete-project-info [project-id]
+  (let [project-info (io/file (wrangle-info-path project-id))]
+    (when (.exists project-info)
+      (.delete project-info))))
+
+(defn delete-project-data [project-id]
+  (let [project-data (io/file (wrangle-data-path project-id))]
+    (when (.exists project-data)
+      (.delete project-data))))
+
+(defn delete-project-directory [project-id]
+  (let [project-directory (io/file (project-dir project-id))]
+    (when (.exists project-directory)
+      (.delete project-directory))))
+
+(defn delete-project [project-id]
+  (when project-id
+    (delete-project-info project-id)
+    (delete-project-data project-id)
+    (delete-project-directory project-id)))
+
 (comment
 
   (projects)
+
+  (delete-project "projone")
 
   (->> (take 10 (file-seq (clojure.java.io/file (System/getProperty "user.home"))))
        (map (fn [^java.io.File file] (and (.isFile file)
