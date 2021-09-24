@@ -188,3 +188,9 @@ Please be patient; it may take over 15 seconds to see any output, and over 30 se
 
 The `resources/public/js/compiled` directory is created, containing the compiled `app.js` and
 `manifest.edn` files.
+
+
+TODO
+
+- In-Progress Logs
+- Clojure Aware Editor

@@ -13,7 +13,8 @@
 (re-frame/reg-event-fx
   ::evaluate
   (fn [{:keys [db]} _]                                      ;; the first param will be "world"
-    {:http-xhrio {:method          :post
+    {:db         (assoc-in db [:project :evaluating] true)
+     :http-xhrio {:method          :post
                   :body            (get-in db [:project :code])
                   :uri             "http://localhost:8081/evaluate"
                   :timeout         10000                    ;; optional see API docs
@@ -26,21 +27,22 @@
   (fn [db event]
     (println "evaluate-success")
     (println event)
-    (assoc-in db [:project :result] (-> event
-                                        (second)
-                                        (get :result)))))
+    (-> db
+        (assoc-in [:project :evaluating] false)
+        (assoc-in [:project :result] (-> event
+                                         (second)
+                                         (get :result))))))
 
 (re-frame/reg-event-db
   ::evaluate-failure
   (fn [db event]
     (println "evaluate-failed")
     (println event)
-    db))
+    (assoc-in db [:project :evaluating] false)))
 
 (re-frame/reg-event-db
   ::edit-code
   (fn [db [_ code]]
-    ;(println db)
     (assoc-in db [:project :code] code)))
 
 (re-frame/reg-event-fx

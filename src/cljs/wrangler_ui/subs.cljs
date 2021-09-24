@@ -31,3 +31,7 @@
 (re-frame/reg-sub
   ::result
   (fn [db] (get-in db [:project :result])))
+
+(re-frame/reg-sub
+  ::evaluating
+  (fn [db] (get-in db [:project :evaluating])))

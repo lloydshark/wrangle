@@ -21,12 +21,12 @@
   (try
     (binding [*ns* (find-ns 'lloydshark.wrangler.wrangle)]
       (let [start-time    (System/currentTimeMillis)
+            _             (Thread/sleep 2000)
             pretty-result (-> raw-string
                               (read-string)
                               (eval)
                               (pretty-print))
             end-time      (System/currentTimeMillis)]
-        (println pretty-result)
         {:result pretty-result
          :time   (- end-time start-time)}))
     (catch Exception e
