@@ -35,3 +35,11 @@
 (re-frame/reg-sub
   ::evaluating
   (fn [db] (get-in db [:project :evaluating])))
+
+(re-frame/reg-sub
+  ::code-show
+  (fn [db] (get-in db [:project :show])))
+
+(re-frame/reg-sub
+  ::files
+  (fn [db] (get-in db [:project :files])))

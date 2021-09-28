@@ -17,15 +17,22 @@
   (zprint/zprint-str thing {:map {:force-nl? true
                                   :justify?  true}}))
 
-(defn read-and-eval [raw-string]
+(defn pretty-print-if-not-string [thing]
+  (if (string? thing)
+    thing
+    (pretty-print thing)))
+
+(defn read-and-eval [{:keys [id code]}]
   (try
-    (binding [*ns* (find-ns 'lloydshark.wrangler.wrangle)]
+    (binding [*ns*                 (find-ns 'lloydshark.wrangler.wrangle)
+              wrangle/*project-id* id]
       (let [start-time    (System/currentTimeMillis)
-            _             (Thread/sleep 2000)
-            pretty-result (-> raw-string
+            _             (Thread/sleep 500)
+            pretty-result (-> code
                               (read-string)
                               (eval)
-                              (pretty-print))
+                              (pretty-print-if-not-string)
+                              )
             end-time      (System/currentTimeMillis)]
         {:result pretty-result
          :time   (- end-time start-time)}))
@@ -35,9 +42,9 @@
                :message (.getMessage e)}})))
 
 (defn evaluate [request]
-  (let [result (read-and-eval (slurp (:body request)))]
+  (let [result (read-and-eval (:params request))]
     {:status 200
-     :body   (json/generate-string result)}))
+     :body   result}))
 
 (defn example [_request]
   {:status 200
@@ -62,14 +69,25 @@
   {:status 200
    :body   (store/delete-project (get-in request [:params :id]))})
 
+(defn open-file-folder [request]
+  {:status 200
+   :body   (do (store/open-file-folder (get-in request [:params :id]))
+               {:status "OK"})})
+
+(defn list-files [request]
+  {:status 200
+   :body   (store/list-files (get-in request [:params :id]))})
+
 (def handler
   (-> (bidi-ring/make-handler ["/"
                                {:post   {"evaluate" evaluate
                                          "projects" save-project}
                                 :delete {["projects/" :id] delete-project}
-                                :get    {"example"         example
-                                         "projects"        projects
-                                         ["projects/" :id] project}}])
+                                :get    {"example"                        example
+                                         "projects"                       projects
+                                         ["projects/" :id]                project
+                                         ["projects/" :id "/file-folder"] open-file-folder
+                                         ["projects/" :id "/files"]       list-files}}])
       (wrap-transit-json-response)
       (wrap-transit-json-params)
       (resource/wrap-resource "public")))
@@ -85,6 +103,9 @@
 
 
 (comment
+
+  (.open (java.awt.Desktop/getDesktop)
+         (clojure.java.io/file (System/getProperty "user.home")))
 
   my-server
 

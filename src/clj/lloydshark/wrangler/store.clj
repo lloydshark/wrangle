@@ -1,12 +1,16 @@
 (ns lloydshark.wrangler.store
   (:require [clojure.java.io :as io])
-  (:import [java.io File]))
+  (:import [java.io File]
+           (java.awt Desktop)))
 
 (defn projects-dir []
   (str (System/getProperty "user.home") "/.wrangle"))
 
 (defn project-dir [project-id]
   (str (projects-dir) "/" project-id))
+
+(defn project-files-dir [project-id]
+  (str (project-dir project-id) "/files"))
 
 (defn wrangle-data-path [project-id]
   (str (project-dir project-id) "/wrangle.data"))
@@ -66,12 +70,13 @@
       (find-unique-project-id project-id 2)
       project-id)))
 
-(defn create-project-directory [project-id]
-  (.mkdir (io/file (project-dir project-id))))
+(defn create-project-directories [project-id]
+  (.mkdir (io/file (project-dir project-id)))
+  (.mkdir (io/file (project-files-dir project-id))))
 
 (defn create-project-id [project]
   (let [project-id (generate-project-id-from-name (:name project))]
-    (create-project-directory project-id)
+    (create-project-directories project-id)
     project-id))
 
 (defn get-or-create-project-id [project]
@@ -114,9 +119,21 @@
     (delete-project-data project-id)
     (delete-project-directory project-id)))
 
+(defn open-file-folder [project-id]
+  (.open (Desktop/getDesktop)
+         (io/file (project-files-dir project-id))))
+
+(defn list-files [project-id]
+  (let [files-directory (io/file (project-files-dir project-id))]
+    (into [] (->> (file-seq files-directory)
+                  (filter #(.isFile %))
+                  (map #(.getName %))))))
+
 (comment
 
   (projects)
+
+  (list-files "new-thing-2")
 
   (delete-project "projone")
 
