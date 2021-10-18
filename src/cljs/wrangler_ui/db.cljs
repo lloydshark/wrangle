@@ -15,5 +15,6 @@
               }
    :project  {:name "My Great Demo"
               :id   "mygreatdemo"
+              :ux   {:result-tab :input}
               :data {:code   "(+ 1 2"
                      :result "fred"}}})

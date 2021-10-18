@@ -8,10 +8,12 @@
             [ring.util.response]
             [ring.middleware.format-response :refer [wrap-transit-json-response]]
             [ring.middleware.format-params :refer [wrap-transit-json-params]]
+            [lloydshark.wrangler.log :as log]
             [lloydshark.wrangler.wrangle :as wrangle]
             [lloydshark.wrangler.store :as store]
             [zprint.core :as zprint])
-  (:import (org.eclipse.jetty.server Server)))
+  (:import (org.eclipse.jetty.server Server)
+           (java.time LocalDateTime)))
 
 (defn pretty-print [thing]
   (zprint/zprint-str thing {:map {:force-nl? true
@@ -22,24 +24,31 @@
     thing
     (pretty-print thing)))
 
-(defn read-and-eval [{:keys [id code]}]
+(defn read-and-eval [{:keys [id input code]}]
   (try
     (binding [*ns*                 (find-ns 'lloydshark.wrangler.wrangle)
-              wrangle/*project-id* id]
-      (let [start-time    (System/currentTimeMillis)
-            _             (Thread/sleep 500)
-            pretty-result (-> code
-                              (read-string)
-                              (eval)
-                              (pretty-print-if-not-string)
-                              )
-            end-time      (System/currentTimeMillis)]
+              wrangle/*input*      input
+              wrangle/*project-id* id
+              log/*logs*           (atom [])]
+      (let [_               (log/info (str (LocalDateTime/now) "\n\n"))
+            start-time      (System/currentTimeMillis)
+            _               (Thread/sleep 50)
+            pretty-result   (-> code
+                                (read-string)
+                                (eval)
+                                (pretty-print-if-not-string)
+                                )
+            end-time        (System/currentTimeMillis)
+            processing-time (- end-time start-time)
+            _               (log/info (str "\nProcessing Time: " processing-time "ms"))]
         {:result pretty-result
-         :time   (- end-time start-time)}))
+         :logs   @log/*logs*
+         :time   processing-time}))
     (catch Exception e
       (.printStackTrace e)
-      {:error {:cause   (when (.getCause e) (.getMessage (.getCause e)))
-               :message (.getMessage e)}})))
+      {:error (if (.getCause e)
+                (format "%s\n%s" (.getMessage e) (.getMessage (.getCause e)))
+                (.getMessage e))})))
 
 (defn evaluate [request]
   (let [result (read-and-eval (:params request))]

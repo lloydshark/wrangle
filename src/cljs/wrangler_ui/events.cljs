@@ -17,7 +17,8 @@
      :http-xhrio {:method          :post
                   :params          (-> db
                                        :project
-                                       (select-keys [:id :code]))
+                                       :data
+                                       (select-keys [:id :input :code]))
                   :uri             "http://localhost:8081/evaluate"
                   :timeout         10000
                   :format          (ajax/transit-request-format)
@@ -28,14 +29,19 @@
 
 (re-frame/reg-event-db
   ::evaluate-success
-  (fn [db event]
+  (fn [db [_ evaluation-result]]
     (println "evaluate-success")
-    (println event)
-    (-> db
-        (assoc-in [:project :evaluating] false)
-        (assoc-in [:project :result] (-> event
-                                         (second)
-                                         (get :result))))))
+    (println evaluation-result)
+    (if (:error evaluation-result)
+      (-> db
+          (assoc-in [:project :evaluating] false)
+          (assoc-in [:project :data :error] (str (:error evaluation-result)))
+          (assoc-in [:project :ux :result-tab] :error))
+      (-> db
+          (assoc-in [:project :evaluating] false)
+          (assoc-in [:project :ux :result-tab] :output)
+          (assoc-in [:project :data :result] (:result evaluation-result))
+          (assoc-in [:project :data :logs] (:logs evaluation-result))))))
 
 (re-frame/reg-event-db
   ::evaluate-failure
@@ -47,7 +53,12 @@
 (re-frame/reg-event-db
   ::edit-code
   (fn [db [_ code]]
-    (assoc-in db [:project :code] code)))
+    (assoc-in db [:project :data :code] code)))
+
+(re-frame/reg-event-db
+  ::edit-input
+  (fn [db [_ input]]
+    (assoc-in db [:project :data :input] input)))
 
 (re-frame/reg-event-fx
   ::load-projects
@@ -87,7 +98,7 @@
   ::load-project-success
   (fn [db [_ project]]
     (assoc db :screen :project
-              :project project)))
+              :project {:data project})))
 
 (re-frame/reg-event-db
   ::close-project
@@ -101,14 +112,15 @@
   (fn [db _]
     (-> db
         (assoc :screen :project
-               :project {:name "New Thing"
-                         :code "(+ 1 2)"}))))
+               :project {:data {:name "New Thing"
+                                :code "(+ 1 2)"}}))))
 
 (re-frame/reg-event-fx
   ::save-project
   (fn [{:keys [db]} _]
+    (println "save-project" (get-in db [:project]))
     {:http-xhrio {:method          :post
-                  :params          (get-in db [:project])
+                  :params          (get-in db [:project :data])
                   :uri             "http://localhost:8081/projects"
                   :timeout         10000
                   :format          (ajax/transit-request-format)
@@ -120,7 +132,7 @@
   ::save-project-success
   (fn [db [_ saved-project]]
     (-> db
-        (assoc :project saved-project)
+        (assoc-in [:project :data] saved-project)
         (assoc-in [:projects (:id saved-project)]
                   (select-keys saved-project [:id :name])))))
 
@@ -144,7 +156,7 @@
 (re-frame/reg-event-db
   ::edit-name
   (fn [db [_ updated-name]]
-    (assoc-in db [:project :name] updated-name)))
+    (assoc-in db [:project :data :name] updated-name)))
 
 (re-frame/reg-event-fx
   ::delete-project
@@ -194,7 +206,7 @@
 (re-frame/reg-event-fx
   ::open-files-folder
   (fn [{:keys [db]} _]
-    (let [project-id (get-in db [:project :id])]
+    (let [project-id (get-in db [:project :data :id])]
       {:http-xhrio {:method          :get
                     :uri             (str "http://localhost:8081/projects/" project-id "/file-folder")
                     :timeout         10000
@@ -206,7 +218,7 @@
 (re-frame/reg-event-fx
   ::list-files
   (fn [{:keys [db]} _]
-    (let [project-id (get-in db [:project :id])]
+    (let [project-id (get-in db [:project :data :id])]
       {:db         (assoc-in db [:project :show] :files)
        :http-xhrio {:method          :get
                     :uri             (str "http://localhost:8081/projects/" project-id "/files")
@@ -236,5 +248,10 @@
   (fn [db [_ filename]]
     (-> db
         (assoc-in [:project :show] :code)
-        (assoc-in [:project :code] (update-code (get-in db [:project :code]) filename)))))
+        (assoc-in [:project :data :code] (update-code (get-in db [:project :code]) filename)))))
+
+(re-frame/reg-event-db
+  ::set-result-tab
+  (fn [db [_ tab]]
+    (assoc-in db [:project :ux :result-tab] tab)))
 

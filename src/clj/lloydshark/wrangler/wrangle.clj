@@ -2,8 +2,10 @@
   (:require [cheshire.core :as json]
             [clojure.pprint :as pprint]
             [clj-http.client :as http]
+            [lloydshark.wrangler.log :as log]
             [lloydshark.wrangler.store :as store]))
 
+(def ^:dynamic *input*)
 (def ^:dynamic *project-id*)
 
 (defn pretty-print [thing]
@@ -22,8 +24,12 @@
 
 (defn http-get
   ([url] (http-get url nil))
-  ([url options] (-> (http/get url options)
-                     (select-keys [:status :body]))))
+  ([url options]
+ (let [_ (log/info (str ">>>>> REQUEST:\n\nGET " url))
+         response (http/get url options)
+         _ (log/info (str "\n>>>>> RESPONSE:\n\nSTATUS: " (:status response)))
+         _ (log/info (str "\n" (:body response)))]
+     (select-keys response [:status :body]))))
 
 (defn http-post
   ([url] (http-post url nil))
@@ -45,7 +51,5 @@
 (comment
 
   (file-slurp "another-new-project" "wrangle.data")
-
-
 
   )

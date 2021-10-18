@@ -95,7 +95,7 @@
   (let [project-id (get-or-create-project-id project)]
     (save-wrangle-info project-id {:id   project-id
                                    :name (:name project)})
-    (save-wrangle-data project-id {:code (:code project)})
+    (save-wrangle-data project-id (select-keys project [:code :error :logs :input :result]))
     (fetch-project project-id)))
 
 (defn delete-project-info [project-id]

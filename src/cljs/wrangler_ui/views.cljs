@@ -14,6 +14,9 @@
 (defn edit-code [e]
   (re-frame/dispatch [::events/edit-code (-> e .-target .-value)]))
 
+(defn edit-input [e]
+  (re-frame/dispatch [::events/edit-input (-> e .-target .-value)]))
+
 ;(defn home-panel []
 ;  )
 
@@ -60,10 +63,53 @@
                 :on-click #(re-frame/dispatch [::events/evaluate])}
        "Evaluate (Ctrl-Enter)"]]]))
 
+(defn input-panel []
+  (let [input (re-frame/subscribe [::subs/input])]
+    [:div {:class "flex flex-col flex-grow"}
+     [:textarea {:class     "flex-grow v-full w-full font-mono resize-none border-none outline-none bg-transparent"
+                 :type      :text
+                 :value     @input
+                 :on-change edit-input
+                 :on-blur   #(re-frame/dispatch [::events/save-project])}]]))
+
+(defn result-panel []
+  (let [evaluating (re-frame/subscribe [::subs/evaluating])
+        result-tab (re-frame/subscribe [::subs/result-tab])
+        input      (re-frame/subscribe [::subs/input])
+        result     (re-frame/subscribe [::subs/result])
+        logs       (re-frame/subscribe [::subs/logs])
+        error      (re-frame/subscribe [::subs/error])]
+    [:div
+     [:div {:class "flex justify-end"}
+      [:button {:class (cond-> "border border-solid rounded hover:bg-blue-700 p-2 m-2"
+                               (= :input @result-tab) (str " text-gray-900 bg-blue-100"))
+                :on-click #(re-frame/dispatch [::events/set-result-tab :input])}
+       "Input"]
+      [:button {:class (cond-> "border border-solid rounded hover:bg-blue-700 p-2 m-2"
+                               (= :output @result-tab) (str " text-gray-900 bg-blue-100"))
+                :on-click #(re-frame/dispatch [::events/set-result-tab :output])}
+       "Output"]
+      [:button {:class (cond-> "border border-solid rounded hover:bg-blue-700 p-2 m-2"
+                               (= :logs @result-tab) (str " text-gray-900 bg-blue-100"))
+                :on-click #(re-frame/dispatch [::events/set-result-tab :logs])}
+       "Logs"]
+      [:button {:class (cond-> "border border-solid rounded hover:bg-blue-700 p-2 m-2"
+                               (= :error @result-tab) (str " text-gray-900 bg-blue-100"))
+                :on-click #(re-frame/dispatch [::events/set-result-tab :error])}
+       "Error"]]
+     (if @evaluating
+       [:svg.h-10.w-10 {:class "animate-spin" :xmlns "http://www.w3.org/2000/svg" :viewBox "0 0 20 20" :fill "currentColor"}
+        [:path {:fill-rule "evenodd" :d "M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" :clip-rule "evenodd"}]]
+       (case @result-tab
+         :input [input-panel]
+         :output [:pre @result]
+         :logs [:div (for [log-entry @logs]
+                       [:pre log-entry])]
+         :error [:pre @error]
+         @input))]))
+
 (defn project-panel []
-  (let [show       (re-frame/subscribe [::subs/code-show])
-        evaluating (re-frame/subscribe [::subs/evaluating])
-        result     (re-frame/subscribe [::subs/result])]
+  (let [show       (re-frame/subscribe [::subs/code-show])]
     [:div {:class "flex-grow grid grid-cols-2"}
      [:div {:class "flex flex-col border border-solid rounded p-4 mr-4"}
       [:div {:class "flex justify-end my-2"}
@@ -80,11 +126,8 @@
         [files-panel]
         [code-panel])]
      [:div {:class "border border-solid rounded p-4 ml-4"}
-      (if @evaluating
-        [:svg.h-10.w-10 {:class "animate-spin" :xmlns "http://www.w3.org/2000/svg" :viewBox "0 0 20 20" :fill "currentColor"}
-         [:path {:fill-rule "evenodd" :d "M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" :clip-rule "evenodd"}]]
-        [:pre {:class "break-all"}
-         @result])]]))
+      [result-panel]
+      ]]))
 
 (defn home-panel []
   (let [projects (re-frame/subscribe [::subs/projects])]
