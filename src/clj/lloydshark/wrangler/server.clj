@@ -61,6 +61,12 @@
                 :the  {:other "fred"}}
                (json/generate-string))})
 
+(defn post-example [_request]
+  {:status 200
+   :body   (-> {:this "that"
+                :the  {:other "fred"}}
+               (json/generate-string))})
+
 (defn projects [_request]
   {:status 200
    :body   (store/projects)})
@@ -90,6 +96,7 @@
 (def handler
   (-> (bidi-ring/make-handler ["/"
                                {:post   {"evaluate" evaluate
+                                         "example"  post-example
                                          "projects" save-project}
                                 :delete {["projects/" :id] delete-project}
                                 :get    {"example"                        example

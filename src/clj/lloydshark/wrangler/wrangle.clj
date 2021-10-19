@@ -25,10 +25,10 @@
 (defn http-get
   ([url] (http-get url nil))
   ([url options]
- (let [_ (log/info (str ">>>>> REQUEST:\n\nGET " url))
+   (let [_        (log/info (str ">>>>> REQUEST:\n\nGET " url))
          response (http/get url options)
-         _ (log/info (str "\n>>>>> RESPONSE:\n\nSTATUS: " (:status response)))
-         _ (log/info (str "\n" (:body response)))]
+         _        (log/info (str "\n>>>>> RESPONSE:\n\nSTATUS: " (:status response)))
+         _        (log/info (str "\n" (:body response)))]
      (select-keys response [:status :body]))))
 
 (defn http-post
@@ -38,15 +38,42 @@
 
 (defn json-get
   ([url] (json-get url nil))
-  ([url options] (let [response (http-get url options)]
-                   (-> (:body response)
-                       (json/parse-string)))))
+  ([url options]
+   (let [json-options   (assoc-in options [:headers "Content-Type"] "application/json")
+         -              (log/info (format ">>>>> REQUEST >>>>>\n\nGET %s\n\n" url))
+         _              (doseq [[header-name header-value] (:headers json-options)]
+                          (log/info (format "%s:%s" header-name header-value)))
+         response       (http/get url json-options)
+         _              (log/info (format "\n<<<<< RESPONSE <<<<<\n\nSTATUS %s\n\n" (:status response)))
+         _              (doseq [[header-name header-value] (:headers response)]
+                          (log/info (format "%s:%s" header-name header-value)))
+         formatted-json (-> (:body response)
+                            (json/parse-string)
+                            (json/generate-string {:pretty true}))
+         _              (log/info (str "\n" formatted-json))
+         ]
+     formatted-json)))
 
 (defn json-post
-  ([url] (json-post url nil))
-  ([url options] (let [response (http-post url options)]
-                   (-> (:body response)
-                       (json/parse-string true)))))
+  ([url json-body] (json-post url json-body nil))
+  ([url json-body options]
+   (let [json-options   (-> options
+                            (assoc-in [:headers "Content-Type"] "application/json")
+                            (assoc :body json-body))
+         -              (log/info (format ">>>>> REQUEST >>>>>\n\nGET %s\n\n" url))
+         _              (doseq [[header-name header-value] (:headers json-options)]
+                          (log/info (format "%s:%s" header-name header-value)))
+         _              (log/info (str "\n" (:body json-options)))
+         response       (http/post url json-options)
+         _              (log/info (format "\n<<<<< RESPONSE <<<<<\n\nSTATUS %s\n\n" (:status response)))
+         _              (doseq [[header-name header-value] (:headers response)]
+                          (log/info (format "%s:%s" header-name header-value)))
+         formatted-json (-> (:body response)
+                            (json/parse-string)
+                            (json/generate-string {:pretty true}))
+         _              (log/info (str "\n" formatted-json))
+         ]
+     formatted-json)))
 
 (comment
 
