@@ -1,6 +1,7 @@
 (ns lloydshark.wrangler.wrangle
   (:require [cheshire.core :as json]
             [clojure.pprint :as pprint]
+            [clojure.string :as str]
             [clj-http.client :as http]
             [lloydshark.wrangler.log :as log]
             [lloydshark.wrangler.store :as store]))
@@ -15,7 +16,7 @@
   (json/parse-string json-string true))
 
 (defn write-json [thing]
-  (json/write thing))
+  (json/generate-string thing))
 
 (defn file-read [filename]
   (let [filepath (str (store/project-files-dir *project-id*) "/" filename)]
@@ -57,21 +58,24 @@
 (defn json-post
   ([url json-body] (json-post url json-body nil))
   ([url json-body options]
-   (let [json-options   (-> options
-                            (assoc-in [:headers "Content-Type"] "application/json")
-                            (assoc :body json-body))
-         -              (log/info (format ">>>>> REQUEST >>>>>\n\nGET %s\n\n" url))
-         _              (doseq [[header-name header-value] (:headers json-options)]
-                          (log/info (format "%s:%s" header-name header-value)))
-         _              (log/info (str "\n" (:body json-options)))
-         response       (http/post url json-options)
-         _              (log/info (format "\n<<<<< RESPONSE <<<<<\n\nSTATUS %s\n\n" (:status response)))
-         _              (doseq [[header-name header-value] (:headers response)]
-                          (log/info (format "%s:%s" header-name header-value)))
-         formatted-json (-> (:body response)
-                            (json/parse-string)
-                            (json/generate-string {:pretty true}))
-         _              (log/info (str "\n" formatted-json))
+   (let [formatted-json-input (-> json-body
+                                  (json/parse-string)
+                                  (json/generate-string {:pretty true}))
+         json-options         (-> options
+                                  (assoc-in [:headers "Content-Type"] "application/json")
+                                  (assoc :body formatted-json-input))
+         -                    (log/info (format ">>>>> REQUEST >>>>>\n\nGET %s\n\n" url))
+         _                    (doseq [[header-name header-value] (:headers json-options)]
+                                (log/info (format "%s:%s" header-name header-value)))
+         _                    (log/info (str "\n" formatted-json-input))
+         response             (http/post url json-options)
+         _                    (log/info (format "\n<<<<< RESPONSE <<<<<\n\nSTATUS %s\n\n" (:status response)))
+         _                    (doseq [[header-name header-value] (:headers response)]
+                                (log/info (format "%s:%s" header-name header-value)))
+         formatted-json       (-> (:body response)
+                                  (json/parse-string)
+                                  (json/generate-string {:pretty true}))
+         _                    (log/info (str "\n" formatted-json))
          ]
      formatted-json)))
 

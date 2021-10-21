@@ -79,7 +79,7 @@
         result     (re-frame/subscribe [::subs/result])
         logs       (re-frame/subscribe [::subs/logs])
         error      (re-frame/subscribe [::subs/error])]
-    [:div
+    [:div {:class "flex flex-grow flex-col"}
      [:div {:class "flex justify-end"}
       [:button {:class (cond-> "border border-solid rounded hover:bg-blue-700 p-2 m-2"
                                (= :input @result-tab) (str " text-gray-900 bg-blue-100"))
@@ -114,18 +114,18 @@
      [:div {:class "flex flex-col border border-solid rounded p-4 mr-4"}
       [:div {:class "flex justify-end my-2"}
        [:div {:class    "border border-solid rounded p-2"
-              :on-click #(re-frame/dispatch [::events/show-code])}
-        [home]]
-       [:div {:class    "border border-solid rounded p-2"
               :on-click #(re-frame/dispatch [::events/open-files-folder])}
         [folder]]
        [:div {:class    "border border-solid rounded p-2"
+              :on-click #(re-frame/dispatch [::events/show-code])}
+        "Code"]
+       [:div {:class    "border border-solid rounded p-2"
               :on-click #(re-frame/dispatch [::events/list-files])}
-        [library]]]
+        "Files"]]
       (if (= :files @show)
         [files-panel]
         [code-panel])]
-     [:div {:class "border border-solid rounded p-4 ml-4"}
+     [:div {:class "flex flex-grow flex-col border border-solid rounded p-4 ml-4"}
       [result-panel]
       ]]))
 
